@@ -1,0 +1,6 @@
+{% extends 'auth_base.html' %}{% block title %}Soukromá paměť · Fresh AI Chat{% endblock %}{% block content %}
+<h1>Soukromá paměť</h1>
+<p class="intro">Do paměti ukládáme pouze poznámky, které jsi výslovně označil/a příkazem „Zapamatuj si: …“. Poznámky jsou přístupné jen tvému účtu. Engine je používá k odpovědím v dalších chatech, když souvisejí s otázkou. Při potřebě externí AI se relevantní poznámky mohou stát součástí jejího zadání.</p>
+{% for note in notes %}<div class="softbox"><p style="white-space:pre-wrap">{{ note.content }}</p><small>{{ note.created_at }}</small><form method="post" action="/account/memory/{{ note.id }}/delete"><input type="hidden" name="csrf" value="{{ csrf_token() }}"><button class="button outline" type="submit">Smazat poznámku</button></form></div>
+{% else %}<p>Zatím nemáš žádnou výslovně uloženou poznámku.</p>{% endfor %}
+<p><a href="/account/profile">← Zpět do profilu</a></p>{% endblock %}

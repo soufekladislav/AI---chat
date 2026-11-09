@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#9EC415">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="{{ persona.assistant_name }}">
+  <title>Fresh AI Chat</title>
+  <meta name="description" content="Fresh AI Chat – univerzální AI chat postavený na Fresh AI Engine.">
+
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='avatars/' ~ persona.avatar_key ~ '-192.png') }}?v={{ version }}-{{ persona_revision }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='avatars/' ~ persona.avatar_key ~ '-192.png') }}?v={{ version }}-{{ persona_revision }}">
+  <link rel="manifest" href="/app.webmanifest?v={{ version }}-{{ persona_revision }}" crossorigin="use-credentials">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/chat.css?v={{ version }}">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="https://www.freshcrackers.cz/" target="_blank" rel="noopener" aria-label="Fresh Crackers">
+        <span class="brand-icon-wrap">
+          <img src="https://www.freshcrackers.cz/wp-content/uploads/2023/10/cropped-icon-FC.png" alt="Fresh Crackers" class="brand-icon">
+        </span>
+        <span class="brand-wordmark"><strong>FRESH</strong> CRACKERS</span>
+      </a>
+
+      <div class="topbar-center">
+        <div class="product-name">{{ persona.assistant_name }}</div>
+        <div class="status" id="engineStatus"><span class="status-dot"></span><span>Kontroluji Engine…</span></div>
+      </div>
+
+      <div class="topbar-actions"><button class="ghost-button" id="newChat" type="button" title="Nový chat">+ Nový chat</button><button class="ghost-button delete-chat" id="deleteChat" type="button" title="Smazat vybranou konverzaci" disabled>✕</button><a href="/account/profile" class="profile-icon" title="Můj profil" aria-label="Můj profil">{{ (current_user.display_name or current_user.email)[0]|upper }}</a></div>
+    </header>
+
+    <aside class="install-bar" id="installBar" hidden aria-label="Instalace Fresh AI Chat">
+      <div class="install-bar-inner">
+        <div class="install-copy">
+          <img src="https://www.freshcrackers.cz/wp-content/uploads/2023/10/cropped-icon-FC.png" alt="" class="install-icon">
+          <div>
+            <strong>Nainstaluj si Fresh AI Chat</strong>
+            <span id="installHint">Měj chat po ruce jako samostatnou aplikaci.</span>
+          </div>
+        </div>
+        <div class="install-actions">
+          <button class="install-button" id="installButton" type="button">Instalovat aplikaci</button>
+          <button class="install-close" id="installClose" type="button" aria-label="Skrýt nabídku instalace">×</button>
+        </div>
+      </div>
+    </aside>
+
+    <main class="chat-wrap">
+      <aside class="chat-history-panel" aria-label="Historie konverzací"><div class="history-heading">Tvoje konverzace</div><div id="conversationList" class="conversation-list"></div><a class="history-profile" href="/account/profile">Můj profil ↗</a><a class="history-profile" href="/account/personality">Osobnost Chatu ↗</a><a class="history-profile" href="/account/memory">Moje paměť ↗</a>
+      <div class="share-panel"><strong>Pošli Fresh AI dál</strong>
+        <a class="share-link" data-share="facebook" href="#">Facebook</a>
+        <a class="share-link" data-share="whatsapp" href="#">WhatsApp</a>
+        <a class="share-link" data-share="x" href="#">X</a>
+        <a class="share-link" data-share="linkedin" href="#">LinkedIn</a>
+        <button class="share-link share-action" data-share="tiktok" type="button">TikTok – kopírovat odkaz</button>
+        <button class="share-link share-action" data-share="native" type="button">Sdílet v telefonu</button>
+        <small id="shareStatus" role="status" aria-live="polite"></small>
+      </div></aside>
+      <section class="chat-card" aria-label="Fresh AI Chat">
+        <div class="messages" id="messages" aria-live="polite"></div>
+        <div class="composer-wrap">
+          <div class="composer">
+            <textarea id="prompt" rows="1" maxlength="12000" placeholder="Napiš, co potřebuješ…" aria-label="Zpráva"></textarea>
+            <button id="sendButton" class="send-button" type="button" aria-label="Odeslat zprávu">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.4 20.4 21 12 3.4 3.6 3 10l12 2-12 2 .4 6.4Z"/></svg>
+            </button>
+          </div>
+          <div class="composer-note">Enter odešle · Shift+Enter nový řádek</div>
+        </div>
+      </section>
+    </main>
+
+    {% if persona.mobile_quick_button %}<button class="mobile-quick-button" id="mobileQuickButton" type="button" aria-label="Nový chat" title="Nový chat">＋</button>{% endif %}
+    <footer class="footer">
+      <span>Tvůrcem aplikace je</span>
+      <a href="https://www.freshcrackers.cz/" target="_blank" rel="noopener">Fresh Crackers</a>
+      <span class="footer-sep">·</span>
+      <span>Fresh AI Chat v{{ version }}</span>
+    </footer>
+  </div>
+
+  <script>window.FRESH_PERSONA = {{ persona|tojson }}; window.FRESH_SHOW_MODEL_META = {{ 'true' if show_model_meta else 'false' }}; window.FRESH_CSRF_TOKEN = {{ csrf|tojson }};</script>
+  <script src="/static/share.js?v={{ version }}"></script>
+  <script src="/static/chat.js?v={{ version }}"></script>
+</body>
+</html>

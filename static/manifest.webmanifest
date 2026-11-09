@@ -1,0 +1,31 @@
+{
+  "id": "/",
+  "name": "Fresh AI Chat · osobní asistent (výchozí ikona)",
+  "short_name": "Fresh AI",
+  "description": "Fresh AI Chat – univerzální AI chat postavený na Fresh AI Engine.",
+  "lang": "cs",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": [
+    "window-controls-overlay",
+    "standalone"
+  ],
+  "background_color": "#FFFFFF",
+  "theme_color": "#9EC415",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/static/avatars/partak-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/avatars/partak-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

@@ -1,0 +1,92 @@
+{% extends 'auth_base.html' %}
+{% block title %}Osobnost Chatu · Fresh AI Chat{% endblock %}
+{% block content %}
+<h1>Vytvoř si svého AI parťáka</h1>
+<p class="intro">Nejprve pojmenuj svého parťáka, potom zvol styl a vzhled. Po uložení se nová osobnost použije také pro další odpověď ve stávajícím vlákně. Předchozí zprávy zůstanou v původní osobnosti.</p>
+{% if error %}<div class="notice error">{{error}}</div>{% endif %}
+<form id="personaForm" method="post">
+  <input type="hidden" name="csrf" value="{{csrf_token()}}">
+  <h2>1. Jak se bude jmenovat?</h2>
+  <label for="assistantName">Jméno asistenta</label>
+  <input id="assistantName" name="assistant_name" maxlength="36" minlength="2" required value="{{selected.assistant_name}}" placeholder="Např. Róza, Max, Fresh AI">
+  <h2>2. Vyber styl komunikace</h2>
+  <div class="persona-grid" id="presetGrid">
+  {% for key,profile in presets.items() %}
+    <label class="persona-preset"><input type="radio" name="preset" value="{{key}}" {% if selected.preset==key %}checked{% endif %}>
+      <img src="/static/avatars/{{'partak' if key=='custom' else key}}-192.png" width="48" height="48" alt="">
+      <span><strong>{{profile.title}}</strong><small>{{profile.description}}</small></span>
+    </label>
+  {% endfor %}
+  </div>
+  <h2>3. Vzhled a ikona aplikace</h2>
+  <p class="hint">Avatar se používá u nových odpovědí, faviconu a v PWA manifestu. U již nainstalované aplikace může Android/iOS ponechat starou systémovou ikonu; v takovém případě odeber zástupce z plochy a nainstaluj jej znovu. Historické odpovědi si ponechají svůj avatar.</p>
+  <div class="avatar-grid">
+    {% for key in avatars %}<label class="avatar-pick"><input type="radio" name="avatar_key" value="{{key}}" {% if selected.avatar_key==key %}checked{% endif %}>
+      <img src="/static/avatars/{{key}}-192.png" width="62" height="62" alt="{{presets[key].title}}">
+      <span>{{presets[key].title}}</span></label>{% endfor %}
+  </div>
+  <h2>4. Dolaď způsob odpovídání</h2>
+  <p class="hint">Můžeš upravit i přednastavený styl, nebo si napsat vlastní osobnost.</p>
+  <button id="restorePreset" type="button" class="button outline">Obnovit ukázkový styl vybrané osobnosti</button>
+  <p class="hint">Pokud jsi osobnost nastavil ve starší verzi, stiskni obnovit vzor a poté ulož. Vlastní napsaný styl jinak zachováme.</p>
+  <label for="tone">Jak má tvůj AI asistent mluvit?</label>
+  <textarea id="tone" name="tone" rows="4" maxlength="800" minlength="10" required>{{selected.tone}}</textarea>
+  <label for="greeting">Na co se tě má zeptat na začátku nového chatu?</label>
+  <input id="greeting" name="greeting" maxlength="160" minlength="5" required value="{{selected.greeting}}">
+  <div class="softbox">
+    <h2>Vlastní osobnost s pomocí AI</h2>
+    <p>Popiš, jak si svého parťáka představuješ. AI navrhne jeho jméno, tón komunikace a úvodní otázku. Před uložením vše můžeš upravit.</p>
+    <label for="customBrief">Můj nápad na osobnost</label>
+    <textarea id="customBrief" rows="3" minlength="12" maxlength="500" placeholder="Například: pohodový vědecký parťák, který tyká, má suchý humor a vysvětluje věci prakticky..."></textarea>
+    <button id="suggestPersona" type="button" class="button outline">Navrhnout osobnost pomocí AI</button>
+    <p id="suggestStatus" class="hint" role="status">Vytvoření návrhu používá AI Engine a může spotřebovat kredity.</p>
+  </div>
+  <div class="softbox">
+    <h2>Rychlý přístup v telefonu</h2>
+    <label class="check"><input type="checkbox" name="mobile_quick_button" value="1" {% if selected.mobile_quick_button %}checked{% endif %}>
+      Zobrazit plovoucí tlačítko pro nový chat v mobilní aplikaci</label>
+    <p class="hint">Ikonu na plochu telefonu můžeš přidat po otevření Chatu. Skutečný widget na domovské obrazovce Androidu nebo iPhonu není součástí této webové verze.</p>
+  </div>
+  {% if has_persona %}<p class="hint">Po uložení obnov Chat: zápatí, favicon a jméno se přepnou na nové nastavení. Ve stávajícím vlákně nová osobnost převezme až další odpověď; předchozí bubliny a jejich jména se nemění.</p>{% endif %}
+  <button class="primary" type="submit">{{ 'Uložit změny' if has_persona else 'Uložit a otevřít Chat' }}</button>
+</form>
+<p class="bottom"><a href="/account/profile">← Zpět do profilu</a></p>
+<script>
+  const presets={{presets|tojson}};
+  const presetGrid=document.getElementById('presetGrid');
+  presetGrid.addEventListener('change',event=>{
+    if(!event.target.matches('input[name="preset"]'))return;
+    const key=event.target.value;
+    if(key!=='custom'){
+      document.getElementById('tone').value=presets[key].tone;
+      document.getElementById('greeting').value=presets[key].greeting;
+      const avatar=document.querySelector(`input[name="avatar_key"][value="${key}"]`);
+      if(avatar)avatar.checked=true;
+    }
+  });
+  document.getElementById('restorePreset')?.addEventListener('click',()=>{
+    const current=document.querySelector('input[name="preset"]:checked')?.value;
+    if(!current || !presets[current]) return;
+    document.getElementById('tone').value=presets[current].tone;
+    document.getElementById('greeting').value=presets[current].greeting;
+  });
+  document.getElementById('suggestPersona')?.addEventListener('click',async()=>{
+    const status=document.getElementById('suggestStatus'),button=document.getElementById('suggestPersona');
+    const brief=document.getElementById('customBrief').value.trim();
+    if(brief.length<12){status.textContent='Nejdřív popiš osobnost alespoň 12 znaky.';return;}
+    button.disabled=true;status.textContent='Připravuji návrh…';
+    try{
+      const resp=await fetch('/api/personality/generate',{method:'POST',credentials:'same-origin',
+        headers:{'Content-Type':'application/json','X-CSRF-Token':{{csrf_token()|tojson}}},
+        body:JSON.stringify({brief})});
+      const data=await resp.json();
+      if(!resp.ok||!data.ok)throw new Error(data.error||'Návrh se nepodařil.');
+      document.querySelector('input[name="preset"][value="custom"]').checked=true;
+      document.getElementById('assistantName').value=data.proposal.assistant_name;
+      document.getElementById('tone').value=data.proposal.tone;
+      document.getElementById('greeting').value=data.proposal.greeting;
+      status.textContent='Návrh je připravený. Můžeš ho upravit a uložit.';
+    }catch(e){status.textContent=e.message;}finally{button.disabled=false;}
+  });
+</script>
+{% endblock %}
